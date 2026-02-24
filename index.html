@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>amnezia2vless</title>
+
+<script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+
+<style>
+body {
+    background: #111;
+    color: #ddd;
+    font-family: monospace;
+    max-width: 800px;
+    margin: 40px auto;
+}
+
+textarea, input {
+    width: 100%;
+    background: #1a1a1a;
+    color: #ddd;
+    border: 1px solid #333;
+    padding: 8px;
+    margin-top: 10px;
+}
+
+textarea {
+    height: 200px;
+}
+
+button {
+    margin-top: 10px;
+    margin-right: 5px;
+    padding: 6px 12px;
+    background: #222;
+    color: #ddd;
+    border: 1px solid #444;
+    cursor: pointer;
+}
+
+button:hover {
+    background: #333;
+}
+
+#result {
+    margin-top: 15px;
+    word-break: break-all;
+}
+
+#qrcode {
+    margin-top: 15px;
+}
+</style>
+</head>
+<body>
+
+<h3>amnezia2vless</h3>
+
+<textarea id="jsonInput" placeholder="Вставьте JSON сюда..."></textarea>
+
+<input type="text" id="customName" placeholder="Имя подключения (необязательно)" />
+
+<button onclick="generateLink()">Создать</button>
+<button onclick="generateQR()">QR</button>
+
+<div id="result"></div>
+<div id="qrcode"></div>
+
+<script>
+
+let generatedLink = "";
+
+function generateLink() {
+    try {
+        const config = JSON.parse(document.getElementById("jsonInput").value);
+        const outbound = config.outbounds.find(o => o.protocol === "vless");
+
+        const vnext = outbound.settings.vnext[0];
+        const user = vnext.users[0];
+        const stream = outbound.streamSettings;
+        const reality = stream.realitySettings;
+
+        const name = document.getElementById("customName").value || "VLESS";
+
+        generatedLink = `vless://${user.id}@${vnext.address}:${vnext.port}?` +
+            `type=${stream.network}` +
+            `&security=${stream.security}` +
+            `&flow=${user.flow}` +
+            `&fp=${reality.fingerprint}` +
+            `&pbk=${reality.publicKey}` +
+            `&sni=${reality.serverName}` +
+            `&sid=${reality.shortId}` +
+            `#${encodeURIComponent(name)}`;
+
+        document.getElementById("result").textContent = generatedLink;
+        document.getElementById("qrcode").innerHTML = "";
+
+    } catch {
+        document.getElementById("result").textContent = "Ошибка JSON";
+        document.getElementById("qrcode").innerHTML = "";
+    }
+}
+
+function copyLink() {
+    if (!generatedLink) return;
+    navigator.clipboard.writeText(generatedLink);
+}
+
+function generateQR() {
+    if (!generatedLink) return;
+
+    const qr = document.getElementById("qrcode");
+    qr.innerHTML = "";
+
+    QRCode.toCanvas(generatedLink, { width: 220 }, function (err, canvas) {
+        if (!err) qr.appendChild(canvas);
+    });
+}
+
+</script>
+
+</body>
+</html>
